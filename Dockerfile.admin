@@ -1,0 +1,38 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+
+# Copy all workspace package manifests (for workspace resolution)
+COPY apps/web/package.json ./apps/web/
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/store/package.json ./packages/store/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/config-tailwind/package.json ./packages/config-tailwind/
+COPY packages/config-typescript/package.json ./packages/config-typescript/
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy full source
+COPY . .
+
+# Declare build-time env vars (Railway passes these from service Variables)
+ARG VITE_API_BASE_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
+# Build only the admin app and its dependencies
+RUN npx turbo build --filter=admin
+
+WORKDIR /app/apps/admin
+
+EXPOSE 4173
+
+CMD sh -c "npx vite preview --host 0.0.0.0 --port ${PORT:-4173}"

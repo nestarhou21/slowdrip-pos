@@ -1,4 +1,4 @@
-import { LayoutGrid, ClipboardList, Settings, LogOut, Package, Users, ShoppingBag, Wallet, ShieldCheck, ReceiptText, Boxes } from "lucide-react";
+import { LayoutGrid, ClipboardList, Settings, LogOut, Package, ShoppingBag, Wallet, ShieldCheck, ReceiptText, Boxes, History } from "lucide-react";
 import { cn } from "@repo/ui";
 import { useSettings } from "@repo/store";
 
@@ -12,28 +12,27 @@ interface SidebarProps {
   staffPortal?: boolean;
 }
 
-const ADMIN_ALL = ["admin", "barista", "receptionist"];
 const ADMIN_ONLY = ["admin"];
-const POS_ROLES = ["admin", "barista"];
+const BARISTA_ROLES = ["admin", "barista"];
+const OPERATOR_ROLES = ["admin", "operator"];
 
 const navItems = [
   { id: "dashboard",        label: "Dashboard",    icon: LayoutGrid,    roles: ADMIN_ONLY },
-  { id: "menu",             label: "POS Register", icon: ShoppingBag,   roles: POS_ROLES  },
-  { id: "orders",           label: "Orders",       icon: ClipboardList, roles: POS_ROLES  },
-  { id: "register",         label: "Shift",        icon: Wallet,        roles: POS_ROLES  },
+  { id: "menu",             label: "POS Register", icon: ShoppingBag,   roles: BARISTA_ROLES },
+  { id: "orders",           label: "Orders",       icon: ClipboardList, roles: BARISTA_ROLES },
+  { id: "register",         label: "Shift",        icon: Wallet,        roles: BARISTA_ROLES },
   { id: "products",         label: "Products",     icon: Package,       roles: ADMIN_ONLY },
   { id: "staff-management", label: "Staff",        icon: ShieldCheck,   roles: ADMIN_ONLY },
-  { id: "members",          label: "Customers",    icon: Users,         roles: ADMIN_ONLY },
   { id: "transactions",     label: "Transactions", icon: ReceiptText,   roles: ADMIN_ONLY },
-  { id: "inventory",         label: "Inventory",    icon: Boxes,         roles: ADMIN_ONLY },
+  { id: "order-log",        label: "Order Log",    icon: History,       roles: ADMIN_ONLY },
+  { id: "inventory",         label: "Inventory",    icon: Boxes,         roles: OPERATOR_ROLES },
   { id: "settings",         label: "Settings",     icon: Settings,      roles: ADMIN_ONLY },
 ];
 
 const PORTAL_LABELS: Record<string, string> = {
   admin: "Admin Portal",
-  staff: "Staff Portal",
   barista: "Barista",
-  receptionist: "Receptionist",
+  operator: "Operator",
 };
 
 const Sidebar = ({ activeTab, onTabChange, ordersBadge, inboxBadge, onLogout, userRole = "barista", staffPortal = false }: SidebarProps) => {

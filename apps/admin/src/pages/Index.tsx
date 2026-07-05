@@ -8,12 +8,12 @@ import CartPanel from "@/components/pos/CartPanel";
 import Dashboard from "@/components/pos/Dashboard";
 import OrdersPage from "@/components/pos/OrdersPage";
 import ProductManagement from "@/components/pos/ProductManagement";
-import CustomersPage from "@/components/pos/CustomersPage";
 import SettingsPage from "@/components/pos/SettingsPage";
 import RegisterPage from "@/components/pos/RegisterPage";
 import StaffManagement from "@/components/pos/StaffManagement";
 import TransactionsPage from "@/components/pos/TransactionsPage";
 import InventoryPage from "@/components/pos/InventoryPage";
+import OrderLogPage from "@/components/pos/OrderLogPage";
 import { useAdminNotifications, useMarkAdminNotificationRead, useCurrentRegisterSession, useApiProducts, useApiCategories, usePlaceOrder, useCheckBakongStatus, useRegenerateBakongQr, useUpdateOrderStatus, useApiPosOrders, useSettings, type ApiProduct, type ApiProductVariant, type ApiOrder, type BakongQrData, type PosCartItem, type AdminNotification, type ApiCategory } from "@repo/store";
 import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label, toast, Checkbox, Skeleton } from "@repo/ui";
 import { CheckCircle2, ShoppingBag, Printer, Plus, Lock, ScanLine, Loader2 } from "lucide-react";
@@ -35,13 +35,14 @@ interface IndexProps {
 
 
 const Index = ({ onLogout, userRole, staffPortal = false, userName = "", currentUserId = null }: IndexProps) => {
-  const defaultTab = userRole === "admin" ? "dashboard" : "menu";
+  const defaultTab = userRole === "admin" ? "dashboard" : userRole === "operator" ? "inventory" : "menu";
   const storageKey = staffPortal ? "sd_staff_tab" : "sd_admin_tab";
 
   // Tabs allowed for each role — mirrors Sidebar navItems
   const ALLOWED_TABS: Record<string, string[]> = {
-    admin:   ["dashboard", "menu", "orders", "register", "products", "staff-management", "members", "transactions", "inventory", "settings"],
-    barista: ["menu", "orders", "register"],
+    admin:    ["dashboard", "menu", "orders", "register", "products", "staff-management", "transactions", "order-log", "inventory", "settings"],
+    barista:  ["menu", "orders", "register"],
+    operator: ["inventory"],
   };
   const allowedTabs = ALLOWED_TABS[userRole] ?? ALLOWED_TABS["barista"];
 
@@ -398,8 +399,8 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 
             {activeTab === "orders" && <OrdersPage onPrintReceipt={handlePrintApiOrder} />}
             {activeTab === "products" && <ProductManagement />}
-            {activeTab === "members" && <CustomersPage />}
             {activeTab === "transactions" && <TransactionsPage />}
+            {activeTab === "order-log" && <OrderLogPage />}
             {activeTab === "inventory" && <InventoryPage />}
             {activeTab === "settings" && <SettingsPage />}
             {activeTab === "register" && <RegisterPage userName={userName} userRole={userRole} />}

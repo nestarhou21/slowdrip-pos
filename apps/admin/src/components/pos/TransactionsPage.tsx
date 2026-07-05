@@ -74,9 +74,8 @@ export default function TransactionsPage() {
     const stats = useMemo(() => {
         const confirmed = transactions.filter(t => t.payment_status === "confirmed" || t.payment_status === "paid");
         return {
-            revenue:  confirmed.reduce((s, t) => s + parseFloat(t.amount), 0),
-            cafe:     transactions.filter(t => t.module === "cafe").length,
-            wellness: transactions.filter(t => t.module === "wellness").length,
+            revenue: confirmed.reduce((s, t) => s + parseFloat(t.amount), 0),
+            cafe:    transactions.filter(t => t.module === "cafe").length,
         };
     }, [transactions]);
 
@@ -106,12 +105,11 @@ export default function TransactionsPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                     { label: "Total Records",     value: total.toLocaleString() },
                     { label: "Confirmed Revenue", value: `$${stats.revenue.toFixed(2)}` },
                     { label: "Cafe",              value: stats.cafe.toLocaleString() },
-                    { label: "Wellness",          value: stats.wellness.toLocaleString() },
                 ].map(s => (
                     <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{s.label}</p>

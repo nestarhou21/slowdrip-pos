@@ -20,6 +20,7 @@ export * from "./data/apiCustomers";
 export * from "./data/apiTransactions";
 export * from "./data/apiAttendance";
 export * from "./data/apiInventory";
+export * from "./data/apiOrderLog";
 export * from "./supabase";
 export * from "./auth";
 export * from "./api";

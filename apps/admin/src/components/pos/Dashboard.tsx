@@ -198,10 +198,10 @@ const Dashboard = () => {
         }));
     }, [cafeData]);
 
-    // Order status data
-    const orderStatusData = useMemo(() => {
-        return cafeData?.orders_by_status ?? [];
-    }, [cafeData]);
+    // Order status data — hidden for now, see Order Status section below
+    // const orderStatusData = useMemo(() => {
+    //     return cafeData?.orders_by_status ?? [];
+    // }, [cafeData]);
 
     const handleExport = async (format: "csv" | "excel") => {
         setExporting(true);
@@ -223,13 +223,13 @@ const Dashboard = () => {
     };
 
     const DONUT_COLORS = ["hsl(142, 28%, 58%)", "hsl(210, 70%, 60%)"];
-    const STATUS_COLORS: Record<string, string> = {
-        pending: "bg-amber-100 text-amber-700",
-        preparing: "bg-blue-100 text-blue-600",
-        ready: "bg-emerald-100 text-emerald-700",
-        completed: "bg-slate-100 text-slate-600",
-        cancelled: "bg-red-100 text-red-600",
-    };
+    // const STATUS_COLORS: Record<string, string> = {
+    //     pending: "bg-amber-100 text-amber-700",
+    //     preparing: "bg-blue-100 text-blue-600",
+    //     ready: "bg-emerald-100 text-emerald-700",
+    //     completed: "bg-slate-100 text-slate-600",
+    //     cancelled: "bg-red-100 text-red-600",
+    // };
 
     return (
         <div className="space-y-6">
@@ -518,7 +518,7 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {/* Order Status */}
+                    {/* Order Status — hidden for now, orders_by_status is hardcoded empty on the backend
                     <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex-1">
                         <h3 className="font-semibold text-foreground mb-4">Order Status</h3>
                         {isLoading ? (
@@ -540,6 +540,7 @@ const Dashboard = () => {
                             </div>
                         )}
                     </div>
+                    */}
                 </div>
             </div>
 
@@ -566,8 +567,15 @@ const Dashboard = () => {
                             (cafeData?.top_products ?? []).map((p, i) => (
                                 <div key={p.product_id} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                                            {i + 1}
+                                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                                            {p.product?.image_url ? (
+                                                <img src={p.product.image_url} alt={p.product.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">?</div>
+                                            )}
+                                            <span className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                                                {i + 1}
+                                            </span>
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-foreground">
@@ -606,8 +614,15 @@ const Dashboard = () => {
                             (cafeData?.least_products ?? []).map((p, i) => (
                                 <div key={p.product_id} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-600">
-                                            {i + 1}
+                                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                                            {p.product?.image_url ? (
+                                                <img src={p.product.image_url} alt={p.product.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">?</div>
+                                            )}
+                                            <span className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                                                {i + 1}
+                                            </span>
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-foreground">

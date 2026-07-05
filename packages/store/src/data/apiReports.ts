@@ -41,7 +41,7 @@ export interface CafeReportProduct {
     product_id: string;
     total_qty: number;
     total_revenue: number;
-    product: { id: string; name: string } | null;
+    product: { id: string; name: string; image_url: string | null } | null;
 }
 
 export interface CafeReportPaymentMethod {

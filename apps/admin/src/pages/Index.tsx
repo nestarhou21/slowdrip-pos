@@ -18,6 +18,7 @@ import { useAdminNotifications, useMarkAdminNotificationRead, useCurrentRegister
 import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label, toast, Checkbox, Skeleton } from "@repo/ui";
 import { CheckCircle2, ShoppingBag, Printer, Plus, Lock, ScanLine, Loader2 } from "lucide-react";
 import { buildReceiptHtmls } from "@/lib/receiptTemplates";
+import { buildDrinkLabelsHtml } from "@/lib/labelTemplates";
 import { playNewOrderChime } from "@/lib/notificationSound";
 
 
@@ -182,6 +183,28 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     printHtml(customerHtml);
   };
 
+  // Print one cup sticker per drink via the OS printer driver (e.g. Xprinter
+  // on USB). Opens a real (visible) window so the print dialog reliably shows
+  // and you can pick the label printer. Choose the Xprinter in the dialog, or
+  // set it as your default printer so it goes straight there.
+  const handlePrintLabels = (o: ApiOrder) => {
+    if (!o?.items?.length) { toast.error("This order has no items to label."); return; }
+    const html = buildDrinkLabelsHtml(o as any);
+    const w = window.open("", "_blank", "width=420,height=640");
+    if (!w) {
+      toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    // Give the window a moment to render before opening the print dialog.
+    setTimeout(() => {
+      w.focus();
+      w.print();
+    }, 400);
+  };
+
 
 
   const pendingOrdersCount = useMemo(
@@ -274,7 +297,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     try {
       const response = await placeOrderMutation.mutateAsync({
         order_type: params.orderType,
-        payment_method: params.paymentMethod === "online" ? "bakong" : "cash",
+        payment_method: params.paymentMethod === "online" ? "qr" : "cash",
         received_amount: params.paymentMethod === "cash" ? params.receivedAmount : null,
         items: cart.map((item) => ({
           product_id: item.product.id,
@@ -288,17 +311,8 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
         notes: params.baristaName ? `Served by: ${params.baristaName}` : null,
       });
       setCart([]);
-      if (params.paymentMethod === "online") {
-        if (response.bakong_qr) {
-          setPendingBakongOrder(response.data);
-          setBakongQrData(response.bakong_qr);
-        } else {
-          toast.error("Failed to generate Bakong QR. Check BAKONG_ACCOUNT_ID in backend .env.");
-        }
-      } else {
-        setLastPlacedOrder(response.data);
-        toast.success("Order Placed Successfully");
-      }
+      setLastPlacedOrder(response.data);
+      toast.success("Order Placed Successfully");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order";
       toast.error(msg);
@@ -678,6 +692,14 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
                 >
                   <Printer className="w-4 h-4" />
                   Print Receipt &amp; Done
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { if (lastPlacedOrder) handlePrintLabels(lastPlacedOrder); }}
+                  className="w-full h-11 gap-2 font-bold"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Cup Labels
                 </Button>
                 <button
                   onClick={() => { handlePrintApiOrder(lastPlacedOrder!); setLastPlacedOrder(null); }}

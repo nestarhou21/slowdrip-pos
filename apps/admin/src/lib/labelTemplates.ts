@@ -5,10 +5,11 @@
 // receipt template: build HTML, drop it in a hidden iframe, window.print().
 //
 // ── Tune the physical sticker size here ──────────────────────────────────────
-// Set this to the exact size of the label roll loaded in the Xprinter.
-// Common cup-label sizes: 40x30mm, 50x30mm, 40x60mm. If text is cut off or the
-// printer feeds a blank label between prints, this is the first thing to adjust.
-export const LABEL_SIZE = { width: '40mm', height: '30mm' } as const;
+// VERTICAL (portrait) cup sticker: width is across the paper, height is the
+// feed direction (taller than wide). Set this to your exact roll size — if
+// text is cut off or a blank label feeds between prints, adjust these two
+// numbers. Common vertical sizes: 40x60mm, 40x50mm, 30x40mm.
+export const LABEL_SIZE = { width: '40mm', height: '60mm' } as const;
 
 // Order item as returned by the API (loose — matches ApiOrder.items usage
 // elsewhere in the app).
@@ -71,7 +72,8 @@ function labelBody(order: LabelOrder, cup: Cup, index: number, total: number): s
       <span class="ord">${esc(order.order_number)}</span>
       <span class="cup">${index + 1}/${total}</span>
     </div>
-    <div class="name">${esc(name)}${size ? `<span class="size">${esc(size)}</span>` : ''}</div>
+    <div class="name">${esc(name)}</div>
+    ${size ? `<div class="size-row"><span class="size">${esc(size)}</span></div>` : ''}
     ${lines.length ? `<div class="cust">${lines.map((l) => `<div>${esc(l)}</div>`).join('')}</div>` : ''}
     ${addons.length ? `<div class="addons">+ ${esc(addons.join(', '))}</div>` : ''}
     <div class="bottom"><span>${esc(typeTag)}</span><span>${esc(time)}</span></div>
@@ -91,29 +93,31 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
   return `<!DOCTYPE html>
 <html><head><title>Labels ${esc(order.order_number)}</title>
 <style>
+  /* Vertical / portrait label: taller than wide. */
   @page { size: ${LABEL_SIZE.width} ${LABEL_SIZE.height}; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: ${LABEL_SIZE.width}; }
   body { font-family: 'Arial Narrow', Arial, sans-serif; color: #000; background: #fff; }
   .label {
     width: ${LABEL_SIZE.width}; height: ${LABEL_SIZE.height};
-    padding: 1.5mm 2mm; overflow: hidden;
+    padding: 2mm; overflow: hidden;
     page-break-after: always; break-after: page;
     display: flex; flex-direction: column;
   }
   .label:last-child { page-break-after: auto; break-after: auto; }
   .top { display: flex; justify-content: space-between; align-items: baseline;
-         font-size: 8pt; font-weight: 700; }
-  .top .ord { letter-spacing: 0.3px; }
+         font-size: 8pt; font-weight: 700; border-bottom: 0.5pt solid #000;
+         padding-bottom: 1mm; }
   .top .cup { font-size: 7pt; }
-  .name { font-size: 13pt; font-weight: 800; line-height: 1.05; margin-top: 0.5mm;
+  .name { font-size: 15pt; font-weight: 800; line-height: 1.1; margin-top: 2mm;
           word-break: break-word; }
-  .name .size { display: inline-block; margin-left: 1.5mm; font-size: 10pt;
-                border: 1.2pt solid #000; border-radius: 2pt; padding: 0 1mm;
-                vertical-align: middle; }
-  .cust { margin-top: 0.8mm; font-size: 9pt; font-weight: 700; line-height: 1.15; }
-  .addons { margin-top: 0.5mm; font-size: 8pt; font-style: italic; line-height: 1.1; }
+  .size-row { margin-top: 1.5mm; }
+  .size { display: inline-block; font-size: 12pt; font-weight: 800;
+          border: 1.4pt solid #000; border-radius: 2pt; padding: 0 2mm; }
+  .cust { margin-top: 2mm; font-size: 11pt; font-weight: 700; line-height: 1.3; }
+  .addons { margin-top: 1.5mm; font-size: 9pt; font-style: italic; line-height: 1.2; }
   .bottom { margin-top: auto; display: flex; justify-content: space-between;
-            font-size: 7pt; font-weight: 700; padding-top: 0.5mm; }
+            font-size: 7.5pt; font-weight: 700; border-top: 0.5pt solid #000;
+            padding-top: 1mm; }
 </style></head><body>${labels}</body></html>`;
 }

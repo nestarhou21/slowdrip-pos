@@ -77,7 +77,7 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
         email: "",
         phone: "",
         password: "",
-        role: "barista" as "admin" | "barista" | "receptionist" | "instructor"
+        role: "barista" as "admin" | "barista" | "receptionist"
     });
 
 
@@ -153,7 +153,7 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
             email: member.email,
             phone: member.phone ?? "",
             password: "",
-            role: member.role
+            role: member.role === "instructor" ? "barista" : member.role,
         });
         setIsStaffDialogOpen(true);
     };
@@ -164,7 +164,7 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
             return;
         }
 
-        if (formData.role !== 'instructor' && !formData.email) {
+        if (!formData.email) {
             toast.error("Email is required");
             return;
         }
@@ -182,8 +182,8 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
                 });
                 toast.success("Staff updated successfully");
             } else {
-                // Create new staff/instructor user
-                if (formData.role !== 'instructor' && (!formData.password || formData.password.length < 6)) {
+                // Create new staff user
+                if (!formData.password || formData.password.length < 6) {
                     toast.error("Password must be at least 6 characters");
                     setSaving(false);
                     return;
@@ -192,9 +192,9 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
                 await api.post("/admin/users", {
                     first_name: formData.first_name,
                     last_name: formData.last_name,
-                    email: formData.email || `${formData.first_name.toLowerCase()}.${Date.now()}@instructor.local`, // dummy email for instructors if empty
+                    email: formData.email,
                     phone: formData.phone || null,
-                    password: formData.role === 'instructor' ? undefined : formData.password,
+                    password: formData.password,
                     role: formData.role,
                 });
                 toast.success("Staff member created successfully");
@@ -410,7 +410,7 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
                                         <div className="space-y-0.5">
                                             <div className="flex items-center gap-2 text-muted-foreground text-xs">
                                                 <Mail className="h-3 w-3" />
-                                                <span>{member.role === 'instructor' ? 'No Login Access' : member.email}</span>
+                                                <span>{member.email}</span>
                                             </div>
                                             {member.phone && (
                                             <div className="flex items-center gap-2 text-muted-foreground text-xs">
@@ -575,19 +575,17 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
                                 />
                             </div>
                         </div>
-                        {formData.role !== 'instructor' && (
-                            <div className="space-y-2">
-                                <Label>Email Address</Label>
-                                <Input
-                                    type="email"
-                                    placeholder="john@slowdrip.com"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    disabled={!!editingStaff}
-                                />
-                            </div>
-                        )}
-                        {(!editingStaff && formData.role !== 'instructor') && (
+                        <div className="space-y-2">
+                            <Label>Email Address</Label>
+                            <Input
+                                type="email"
+                                placeholder="john@slowdrip.com"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                disabled={!!editingStaff}
+                            />
+                        </div>
+                        {!editingStaff && (
                         <div className="space-y-2">
                             <Label>Password</Label>
                             <div className="relative">
@@ -649,20 +647,7 @@ const StaffManagement = ({ currentUserId = null }: StaffManagementProps) => {
                                 >
                                     <Calendar className="mx-auto mb-1 h-4 w-4" />
                                     <div className="text-sm font-medium">Receptionist</div>
-                                    <div className="text-[10px] text-muted-foreground mt-0.5">Wellness access</div>
-                                </button>
-                                <button
-                                    onClick={() => setFormData({ ...formData, role: "instructor" })}
-                                    disabled={!!(editingStaff && isSelf(editingStaff))}
-                                    className={cn(
-                                        "rounded-lg border p-3 text-center transition-all",
-                                        formData.role === "instructor" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:bg-muted",
-                                        editingStaff && isSelf(editingStaff) && "cursor-not-allowed opacity-40"
-                                    )}
-                                >
-                                    <UserCircle2 className="mx-auto mb-1 h-4 w-4" />
-                                    <div className="text-sm font-medium">Instructor</div>
-                                    <div className="text-[10px] text-muted-foreground mt-0.5">No login</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">Front desk</div>
                                 </button>
                                 <button
                                     onClick={() => setFormData({ ...formData, role: "admin" })}

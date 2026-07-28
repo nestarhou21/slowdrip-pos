@@ -13,26 +13,28 @@ interface SidebarProps {
 }
 
 const ADMIN_ONLY = ["admin"];
-const BARISTA_ROLES = ["admin", "barista"];
-const OPERATOR_ROLES = ["admin", "operator"];
+// Front-of-house staff: take orders, run the register, manage the shift.
+const FLOOR_ROLES = ["admin", "barista", "receptionist"];
+// Stock handling.
+const STOCK_ROLES = ["admin", "barista"];
 
 const navItems = [
   { id: "dashboard",        label: "Dashboard",    icon: LayoutGrid,    roles: ADMIN_ONLY },
-  { id: "menu",             label: "POS Register", icon: ShoppingBag,   roles: BARISTA_ROLES },
-  { id: "orders",           label: "Orders",       icon: ClipboardList, roles: BARISTA_ROLES },
-  { id: "register",         label: "Shift",        icon: Wallet,        roles: BARISTA_ROLES },
+  { id: "menu",             label: "POS Register", icon: ShoppingBag,   roles: FLOOR_ROLES },
+  { id: "orders",           label: "Orders",       icon: ClipboardList, roles: FLOOR_ROLES },
+  { id: "register",         label: "Shift",        icon: Wallet,        roles: FLOOR_ROLES },
   { id: "products",         label: "Products",     icon: Package,       roles: ADMIN_ONLY },
   { id: "staff-management", label: "Staff",        icon: ShieldCheck,   roles: ADMIN_ONLY },
   { id: "transactions",     label: "Transactions", icon: ReceiptText,   roles: ADMIN_ONLY },
   { id: "order-log",        label: "Order Log",    icon: History,       roles: ADMIN_ONLY },
-  { id: "inventory",         label: "Inventory",    icon: Boxes,         roles: OPERATOR_ROLES },
+  { id: "inventory",         label: "Inventory",    icon: Boxes,         roles: STOCK_ROLES },
   { id: "settings",         label: "Settings",     icon: Settings,      roles: ADMIN_ONLY },
 ];
 
 const PORTAL_LABELS: Record<string, string> = {
   admin: "Admin Portal",
   barista: "Barista",
-  operator: "Operator",
+  receptionist: "Front Desk",
 };
 
 const Sidebar = ({ activeTab, onTabChange, ordersBadge, inboxBadge, onLogout, userRole = "barista", staffPortal = false }: SidebarProps) => {

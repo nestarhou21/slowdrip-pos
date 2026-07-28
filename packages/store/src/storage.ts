@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { api } from "./api";
+import { compressImage } from "./imageCompress";
 
 const BUCKET = "products";
 
@@ -8,6 +9,7 @@ const BUCKET = "products";
  * Returns the public CDN URL of the uploaded file.
  */
 export async function uploadProductImage(file: File): Promise<string> {
+    file = await compressImage(file); // resize + WebP before upload
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const path = `${crypto.randomUUID()}.${ext}`;
 
@@ -27,6 +29,7 @@ export async function uploadProductImage(file: File): Promise<string> {
  * Returns the public CDN URL.
  */
 export async function uploadLogoImage(file: File): Promise<string> {
+    file = await compressImage(file); // SVG logos pass through untouched
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
     const path = `brand/logo-${crypto.randomUUID()}.${ext}`;
 
@@ -46,6 +49,7 @@ export async function uploadLogoImage(file: File): Promise<string> {
  * Returns the public CDN URL.
  */
 export async function uploadInventoryImage(file: File): Promise<string> {
+    file = await compressImage(file); // resize + WebP before upload
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const path = `inventory/${crypto.randomUUID()}.${ext}`;
 

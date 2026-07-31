@@ -1,3 +1,5 @@
+import { jsPDF } from 'jspdf';
+
 // ─── Drink Cup Label Template ─────────────────────────────────────────────────
 //
 // Prints one small sticker per cup on an Xprinter (or any) label printer that
@@ -104,4 +106,66 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
   .cust { font-size: 6.5pt; font-weight: 700; line-height: 1.15; margin-top: 0.4mm; }
   .addons { font-size: 5.5pt; font-style: italic; line-height: 1.05; margin-top: 0.3mm; }
 </style></head><body>${labels}</body></html>`;
+}
+
+/**
+ * Build the same cup labels as a PDF sized to the exact sticker. Printing a PDF
+ * avoids the browser's header/footer, "fit to page" scaling, and rotation
+ * quirks — one PDF page = one sticker, at LABEL_SIZE. This is the reliable path
+ * for the thermal label printer.
+ */
+export function buildDrinkLabelsPdf(order: LabelOrder): jsPDF {
+  const W = parseFloat(LABEL_SIZE.width);
+  const H = parseFloat(LABEL_SIZE.height);
+  const orientation = W >= H ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ orientation, unit: 'mm', format: [W, H] });
+  const cx = W / 2;
+  const maxW = W - 2;
+  const cups = toCups(order);
+  const total = cups.length;
+
+  // Shrink the font until the text fits the label width.
+  const fit = (text: string, start: number, min: number) => {
+    let fs = start;
+    doc.setFontSize(fs);
+    while (fs > min && doc.getTextWidth(text) > maxW) { fs -= 0.5; doc.setFontSize(fs); }
+  };
+
+  cups.forEach((cup, i) => {
+    if (i > 0) doc.addPage([W, H], orientation);
+    const { item } = cup;
+    const name = item.product?.name ?? item.item_name ?? 'Item';
+    const size = item.variant?.size?.name ?? '';
+    const addons = (item.addons ?? []).map((a) => a.addon?.name).filter(Boolean) as string[];
+    const lines = customLines(item.customisation);
+
+    // order number · cup
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5);
+    doc.text(`${order.order_number}  ·  ${i + 1}/${total}`, cx, 3, { align: 'center' });
+
+    // drink name (+ size)
+    doc.setFont('helvetica', 'bold');
+    const nameStr = size ? `${name}  (${size})` : name;
+    fit(nameStr, 10, 6);
+    doc.text(nameStr, cx, 9, { align: 'center' });
+
+    // sugar · ice
+    if (lines.length) {
+      doc.setFont('helvetica', 'normal');
+      const custStr = lines.join('    ·    ');
+      fit(custStr, 7, 5);
+      doc.text(custStr, cx, 13.5, { align: 'center' });
+    }
+
+    // add-ons
+    if (addons.length) {
+      doc.setFont('helvetica', 'italic');
+      const addStr = `+ ${addons.join(', ')}`;
+      fit(addStr, 6, 4.5);
+      doc.text(addStr, cx, 17.2, { align: 'center' });
+    }
+  });
+
+  return doc;
 }

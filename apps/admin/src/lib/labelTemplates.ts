@@ -5,11 +5,10 @@
 // receipt template: build HTML, drop it in a hidden iframe, window.print().
 //
 // ── Tune the physical sticker size here ──────────────────────────────────────
-// VERTICAL (portrait) cup sticker: width is across the paper, height is the
-// feed direction (taller than wide). Set this to your exact roll size — if
-// text is cut off or a blank label feeds between prints, adjust these two
-// numbers. Common vertical sizes: 40x60mm, 40x50mm, 30x40mm.
-export const LABEL_SIZE = { width: '30mm', height: '40mm' } as const;
+// Cup sticker: width is across the paper, height is the feed direction.
+// Current roll: 30mm wide x 20mm tall (small landscape). If text is cut off or
+// a blank label feeds between prints, adjust these two numbers.
+export const LABEL_SIZE = { width: '30mm', height: '20mm' } as const;
 
 // Order item as returned by the API (loose — matches ApiOrder.items usage
 // elsewhere in the app).
@@ -62,21 +61,11 @@ function labelBody(order: LabelOrder, cup: Cup, index: number, total: number): s
     .filter(Boolean) as string[];
   const lines = customLines(item.customisation);
 
-  const time = new Date(order.created_at).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-  const typeTag = order.order_type === 'dine_in' ? 'DINE IN' : 'TAKE AWAY';
-
   return `<div class="label">
-    <div class="top">
-      <span class="ord">${esc(order.order_number)}</span>
-      <span class="cup">${index + 1}/${total}</span>
-    </div>
-    <div class="name">${esc(name)}</div>
-    ${size ? `<div class="size-row"><span class="size">${esc(size)}</span></div>` : ''}
-    ${lines.length ? `<div class="cust">${lines.map((l) => `<div>${esc(l)}</div>`).join('')}</div>` : ''}
+    <div class="top">${esc(order.order_number)} &middot; ${index + 1}/${total}</div>
+    <div class="name">${esc(name)}${size ? ` <span class="size">${esc(size)}</span>` : ''}</div>
+    ${lines.length ? `<div class="cust">${esc(lines.join(' · '))}</div>` : ''}
     ${addons.length ? `<div class="addons">+ ${esc(addons.join(', '))}</div>` : ''}
-    <div class="bottom"><span>${esc(typeTag)}</span><span>${esc(time)}</span></div>
   </div>`;
 }
 
@@ -100,24 +89,19 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
   body { font-family: 'Arial Narrow', Arial, sans-serif; color: #000; background: #fff; }
   .label {
     width: ${LABEL_SIZE.width}; height: ${LABEL_SIZE.height};
-    padding: 1.3mm; overflow: hidden;
+    padding: 0.8mm 1mm; overflow: hidden;
     page-break-after: always; break-after: page;
     display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
   }
   .label:last-child { page-break-after: auto; break-after: auto; }
-  .top { display: flex; justify-content: space-between; align-items: baseline;
-         font-size: 6pt; font-weight: 700; border-bottom: 0.5pt solid #000;
-         padding-bottom: 0.5mm; }
-  .top .cup { font-size: 5.5pt; }
-  .name { font-size: 10pt; font-weight: 800; line-height: 1.05; margin-top: 0.9mm;
+  .top { font-size: 5pt; font-weight: 700; letter-spacing: 0.2px; }
+  .name { font-size: 8.5pt; font-weight: 800; line-height: 1.05; margin-top: 0.4mm;
           word-break: break-word; }
-  .size-row { margin-top: 0.7mm; }
-  .size { display: inline-block; font-size: 8pt; font-weight: 800;
-          border: 1pt solid #000; border-radius: 1.5pt; padding: 0 1.2mm; }
-  .cust { margin-top: 0.9mm; font-size: 7.5pt; font-weight: 700; line-height: 1.2; }
-  .addons { margin-top: 0.6mm; font-size: 6pt; font-style: italic; line-height: 1.1; }
-  .bottom { margin-top: auto; display: flex; justify-content: space-between;
-            font-size: 5.5pt; font-weight: 700; border-top: 0.5pt solid #000;
-            padding-top: 0.5mm; }
+  .size { display: inline-block; font-size: 7pt; font-weight: 800;
+          border: 0.8pt solid #000; border-radius: 1pt; padding: 0 0.8mm;
+          vertical-align: middle; }
+  .cust { font-size: 6.5pt; font-weight: 700; line-height: 1.15; margin-top: 0.4mm; }
+  .addons { font-size: 5.5pt; font-style: italic; line-height: 1.05; margin-top: 0.3mm; }
 </style></head><body>${labels}</body></html>`;
 }

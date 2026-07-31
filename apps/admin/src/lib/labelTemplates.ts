@@ -9,7 +9,7 @@
 // feed direction (taller than wide). Set this to your exact roll size — if
 // text is cut off or a blank label feeds between prints, adjust these two
 // numbers. Common vertical sizes: 40x60mm, 40x50mm, 30x40mm.
-export const LABEL_SIZE = { width: '40mm', height: '60mm' } as const;
+export const LABEL_SIZE = { width: '30mm', height: '40mm' } as const;
 
 // Order item as returned by the API (loose — matches ApiOrder.items usage
 // elsewhere in the app).
@@ -100,24 +100,24 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
   body { font-family: 'Arial Narrow', Arial, sans-serif; color: #000; background: #fff; }
   .label {
     width: ${LABEL_SIZE.width}; height: ${LABEL_SIZE.height};
-    padding: 2mm; overflow: hidden;
+    padding: 1.3mm; overflow: hidden;
     page-break-after: always; break-after: page;
     display: flex; flex-direction: column;
   }
   .label:last-child { page-break-after: auto; break-after: auto; }
   .top { display: flex; justify-content: space-between; align-items: baseline;
-         font-size: 8pt; font-weight: 700; border-bottom: 0.5pt solid #000;
-         padding-bottom: 1mm; }
-  .top .cup { font-size: 7pt; }
-  .name { font-size: 15pt; font-weight: 800; line-height: 1.1; margin-top: 2mm;
+         font-size: 6pt; font-weight: 700; border-bottom: 0.5pt solid #000;
+         padding-bottom: 0.5mm; }
+  .top .cup { font-size: 5.5pt; }
+  .name { font-size: 10pt; font-weight: 800; line-height: 1.05; margin-top: 0.9mm;
           word-break: break-word; }
-  .size-row { margin-top: 1.5mm; }
-  .size { display: inline-block; font-size: 12pt; font-weight: 800;
-          border: 1.4pt solid #000; border-radius: 2pt; padding: 0 2mm; }
-  .cust { margin-top: 2mm; font-size: 11pt; font-weight: 700; line-height: 1.3; }
-  .addons { margin-top: 1.5mm; font-size: 9pt; font-style: italic; line-height: 1.2; }
+  .size-row { margin-top: 0.7mm; }
+  .size { display: inline-block; font-size: 8pt; font-weight: 800;
+          border: 1pt solid #000; border-radius: 1.5pt; padding: 0 1.2mm; }
+  .cust { margin-top: 0.9mm; font-size: 7.5pt; font-weight: 700; line-height: 1.2; }
+  .addons { margin-top: 0.6mm; font-size: 6pt; font-style: italic; line-height: 1.1; }
   .bottom { margin-top: auto; display: flex; justify-content: space-between;
-            font-size: 7.5pt; font-weight: 700; border-top: 0.5pt solid #000;
-            padding-top: 1mm; }
+            font-size: 5.5pt; font-weight: 700; border-top: 0.5pt solid #000;
+            padding-top: 0.5mm; }
 </style></head><body>${labels}</body></html>`;
 }

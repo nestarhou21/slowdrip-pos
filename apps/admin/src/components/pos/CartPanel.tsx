@@ -317,21 +317,21 @@ const CartPanel = ({
           )}
 
           {paymentMethod === "online" && (
-            <div className="animate-in fade-in duration-300">
-              <div className="rounded-xl bg-red-50/60 p-3 border border-red-100 flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                    <rect x="2" y="2" width="9" height="9" rx="1.5" stroke="#dc2626" strokeWidth="2"/>
-                    <rect x="13" y="2" width="9" height="9" rx="1.5" stroke="#dc2626" strokeWidth="2"/>
-                    <rect x="2" y="13" width="9" height="9" rx="1.5" stroke="#dc2626" strokeWidth="2"/>
-                    <rect x="15" y="15" width="5" height="5" rx="0.5" fill="#dc2626"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-red-800 uppercase tracking-widest leading-none">Online Payment (KHQR)</p>
-                  <p className="text-[11px] text-red-600 font-medium leading-none mt-1">QR will appear after placing order · ${total.toFixed(2)}</p>
-                </div>
+            <div className="animate-in fade-in duration-300 space-y-3">
+              <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-center">
+                  Online Payment · ABA
+                </p>
+                {total > 0 && (
+                  <p className="text-lg font-black text-foreground text-center">${total.toFixed(2)}</p>
+                )}
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Customer scans QR or pays via app on website
+                </p>
               </div>
+              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                Confirm payment received before tapping Complete Order
+              </p>
             </div>
           )}
         </div>

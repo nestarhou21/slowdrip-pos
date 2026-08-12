@@ -14,6 +14,7 @@ export interface CafeSize {
     id: string;
     name: string;
     sort_order: number;
+    variants_count?: number;
 }
 
 export interface ApiProductVariant {

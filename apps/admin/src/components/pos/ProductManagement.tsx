@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, Package, X, ToggleLeft, ToggleRight, AlertCircle, Upload, Loader2, Tag, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, X, ToggleLeft, ToggleRight, AlertCircle, Upload, Loader2, Tag, Globe, Ruler } from "lucide-react";
 import {
   useApiCategories, useApiProducts, useApiProduct, useCreateProduct, useUpdateProduct, useDeleteProduct, useCreateCategory,
   useUpdateCategory, useDeleteCategory,
@@ -231,10 +231,18 @@ const ProductManagement = () => {
   };
 
   const saveItem = async () => {
-    const finalPrice = parseFloat(formData.price);
+    const finalPrice = hasVariants ? 0 : parseFloat(formData.price);
 
-    if (isNaN(finalPrice) || finalPrice < 0) {
+    if (!hasVariants && (isNaN(finalPrice) || finalPrice < 0)) {
       toast.error("Please enter a valid price."); return;
+    }
+
+    if (hasVariants && selectedVariants.length === 0) {
+      toast.error("Add at least one size with a price."); return;
+    }
+
+    if (hasVariants && selectedVariants.some(v => !v.price || isNaN(parseFloat(v.price)))) {
+      toast.error("Enter a price for every selected size."); return;
     }
 
     let categoryId = formData.categoryId;
@@ -263,7 +271,7 @@ const ProductManagement = () => {
       base_price: finalPrice,
       is_available: formData.isAvailable,
       show_on_website: formData.showOnWebsite,
-      has_variants: false,
+      has_variants: hasVariants,
     };
 
     setSaving(true);
@@ -448,6 +456,10 @@ const ProductManagement = () => {
           <p className="text-sm text-muted-foreground">{allProducts.length} product{allProducts.length !== 1 ? 's' : ''} total</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setSizeDialogOpen(true)} className="gap-2" disabled={isLoading}>
+            <Ruler className="h-4 w-4" />
+            Sizes
+          </Button>
           <Button variant="default" onClick={() => setCatDialogOpen(true)} className="gap-2" disabled={isLoading}>
             <Tag className="h-4 w-4" />
             Categories
@@ -724,36 +736,126 @@ const ProductManagement = () => {
               <Input value={formData.name} onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))} placeholder="Product name" />
             </div>
 
-            {/* Price + Category */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Price ($)</Label>
-                <Input type="number" step="0.01" min="0" value={formData.price} onChange={(e) => setFormData((f) => ({ ...f, price: e.target.value }))} placeholder="0.00" />
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label>Category</Label>
+              {showNewCat ? (
+                <div className="flex gap-2">
+                  <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Category name" className="flex-1" autoFocus />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" onClick={() => setShowNewCat(false)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Cancel</TooltipContent>
+                  </Tooltip>
+                </div>
+              ) : (
+                <Select value={formData.categoryId} onValueChange={(v) => { if (v === "__new__") { setShowNewCat(true); } else setFormData((f) => ({ ...f, categoryId: v })); }}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter((c) => c.is_active).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__new__" className="text-primary font-medium">+ Add New Category</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Pricing — single price or per-size variants */}
+            <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Pricing & Sizes</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!hasVariants && selectedVariants.length === 0) {
+                      setSelectedVariants(allSizes.map(s => ({
+                        size_id: s.id,
+                        price: formData.price || "",
+                        is_available: true,
+                      })));
+                    }
+                    setHasVariants(v => !v);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-all",
+                    hasVariants
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  )}
+                >
+                  <Ruler className="h-3 w-3" />
+                  {hasVariants ? "Has Sizes" : "No Sizes"}
+                </button>
               </div>
-              <div className="space-y-1.5">
-                <Label>Category</Label>
-                {showNewCat ? (
-                  <div className="flex gap-2">
-                    <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Category name" className="flex-1" autoFocus />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => setShowNewCat(false)} className="shrink-0"><X className="h-4 w-4" /></Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Cancel</TooltipContent>
-                    </Tooltip>
-                  </div>
-                ) : (
-                  <Select value={formData.categoryId} onValueChange={(v) => { if (v === "__new__") { setShowNewCat(true); } else setFormData((f) => ({ ...f, categoryId: v })); }}>
-                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                    <SelectContent>
-                      {categories.filter((c) => c.is_active).map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                      <SelectItem value="__new__" className="text-primary font-medium">+ Add New Category</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+
+              {!hasVariants ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Fixed Price ($)</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData((f) => ({ ...f, price: e.target.value }))}
+                    placeholder="0.00"
+                    className="h-9"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted-foreground">Set a price for each size. Uncheck to hide a size.</p>
+                  {allSizes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic py-2">No sizes defined — add sizes via the Sizes button first.</p>
+                  ) : (
+                    allSizes.map((size) => {
+                      const variant = selectedVariants.find(v => v.size_id === size.id);
+                      const isChecked = !!variant;
+                      return (
+                        <div key={size.id} className={cn(
+                          "flex items-center gap-3 rounded-lg border px-3 py-2 transition-all",
+                          isChecked ? "border-primary/30 bg-primary/5" : "border-border bg-card opacity-60"
+                        )}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleVariantSize(size.id)}
+                            className="h-4 w-4 rounded accent-primary cursor-pointer"
+                          />
+                          <span className="w-8 text-sm font-bold text-foreground">{size.name}</span>
+                          <div className="flex-1 relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                            <Input
+                              type="number" step="0.01" min="0"
+                              value={variant?.price ?? ""}
+                              onChange={(e) => {
+                                if (!isChecked) toggleVariantSize(size.id);
+                                updateVariantField(size.id, { price: e.target.value });
+                              }}
+                              placeholder="0.00"
+                              className="h-8 pl-6 text-sm"
+                              disabled={!isChecked}
+                            />
+                          </div>
+                          {isChecked && (
+                            <button
+                              type="button"
+                              onClick={() => updateVariantField(size.id, { is_available: !variant?.is_available })}
+                              className={cn(
+                                "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border transition-all",
+                                variant?.is_available
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                                  : "border-border bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {variant?.is_available ? "Available" : "Hidden"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -941,6 +1043,113 @@ const ProductManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Manage Sizes Dialog ── */}
+      <Dialog open={sizeDialogOpen} onOpenChange={setSizeDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Manage Sizes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 max-h-72 overflow-y-auto scrollbar-thin pr-1">
+            {allSizes.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">No sizes yet.</p>
+            )}
+            {allSizes.map((size) => (
+              <div key={size.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40">
+                {editingSize?.id === size.id ? (
+                  <>
+                    <Input
+                      value={editingSizeName}
+                      onChange={(e) => setEditingSizeName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveSize(); if (e.key === "Escape") setEditingSize(null); }}
+                      className="h-7 flex-1 text-sm"
+                      autoFocus
+                    />
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={handleSaveSize} disabled={savingSize}>
+                      {savingSize ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingSize(null)} disabled={savingSize}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm font-semibold">{size.name}</span>
+                    {(size.variants_count ?? 0) > 0 && (
+                      <span className="text-[10px] text-muted-foreground mr-1">{size.variants_count} products</span>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => { setEditingSize(size); setEditingSizeName(size.name); }}
+                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Rename size</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setConfirmDeleteSize(size)}
+                          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete size</TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* Add new size */}
+          <div className="flex gap-2 pt-2 border-t border-border">
+            <Input
+              placeholder="New size name (e.g. XL)"
+              value={newSizeName}
+              onChange={(e) => setNewSizeName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleAddSize(); }}
+              className="h-8 text-sm flex-1"
+            />
+            <Button size="sm" className="h-8 gap-1.5" onClick={handleAddSize} disabled={addingSize || !newSizeName.trim()}>
+              {addingSize ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+              Add
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSizeDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Size Confirm ── */}
+      <AlertDialog open={!!confirmDeleteSize} onOpenChange={(o) => { if (!o && !deletingSize) setConfirmDeleteSize(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete size?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &quot;{confirmDeleteSize?.name}&quot; will be permanently deleted.
+              {(confirmDeleteSize?.variants_count ?? 0) > 0
+                ? ` This will also remove the ${confirmDeleteSize?.name} size from ${confirmDeleteSize?.variants_count} product${confirmDeleteSize!.variants_count !== 1 ? "s" : ""}.`
+                : " No products currently use this size."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingSize}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={handleDeleteSize}
+              disabled={deletingSize}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
+            >
+              {deletingSize && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deletingSize ? "Deleting..." : "Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Delete Category Confirm ── */}
       <AlertDialog open={!!confirmDeleteCat} onOpenChange={(o) => { if (!o && !deletingCat) setConfirmDeleteCat(null); }}>

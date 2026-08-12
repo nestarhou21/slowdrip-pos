@@ -138,6 +138,16 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
   const isRegisterLoading = session.isLoading;
 
   const handlePrintApiOrder = async (o: ApiOrder) => {
+    // Open the window synchronously, while the user's click is still "fresh".
+    // Chrome silently blocks window.open() after an await (the logo fetch),
+    // which made the receipt tab never appear.
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
+      return;
+    }
+    w.document.write("<p style='font-family:sans-serif;padding:24px;color:#555;'>Preparing receipt&hellip;</p>");
+
     let logoSrc = "";
     const logoUrl = settings?.logo_url || "";
     if (logoUrl) {
@@ -169,19 +179,14 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
       khrRate:     KHR_RATE,
     });
 
-    openPrintWindow(html);
+    writePrintHtml(w, html);
   };
 
-  // Open a new window with the given HTML and print it. The auto-print script
-  // runs INSIDE the new window (no cross-window timing issues), and a visible
-  // Print button (hidden on paper) is the manual fallback if auto-print is
-  // blocked on this device.
-  const openPrintWindow = (html: string) => {
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
-      return;
-    }
+  // Write printable HTML into an already-open window and print it. The
+  // auto-print script runs INSIDE that window (no cross-window timing issues),
+  // and a visible Print button (hidden on paper) is the manual fallback if
+  // auto-print is blocked on this device.
+  const writePrintHtml = (w: Window, html: string) => {
     const printExtras = `
 <div id="__printbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:10px;display:flex;gap:8px;justify-content:center;font-family:Arial,sans-serif;">
   <button onclick="window.print()" style="font-size:15px;font-weight:bold;padding:8px 24px;border-radius:6px;border:0;background:#22c55e;color:#fff;cursor:pointer;">&#128424; Print</button>
@@ -190,6 +195,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 <div style="height:52px;"></div>
 <style>@media print { #__printbar, #__printbar + div { display:none !important; } }</style>
 <script>(function(){var go=function(){setTimeout(function(){window.focus();window.print();},400);};if(document.readyState==='complete'){go();}else{window.addEventListener('load',go);}})();<\/script>`;
+    w.document.open();
     w.document.write(html.includes("</body>") ? html.replace("</body>", printExtras + "</body>") : html + printExtras);
     w.document.close();
   };
@@ -202,7 +208,12 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     if (!o?.items?.length) { toast.error("This order has no items to label."); return; }
     try {
       const html = buildDrinkLabelsHtml(o as any);
-      openPrintWindow(html);
+      const w = window.open("", "_blank");
+      if (!w) {
+        toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
+        return;
+      }
+      writePrintHtml(w, html);
     } catch (err: any) {
       toast.error("Could not build labels: " + (err?.message ?? "error"));
     }

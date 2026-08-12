@@ -18,7 +18,7 @@ import { useAdminNotifications, useMarkAdminNotificationRead, useCurrentRegister
 import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label, toast, Checkbox, Skeleton } from "@repo/ui";
 import { CheckCircle2, ShoppingBag, Printer, Plus, Lock, ScanLine, Loader2 } from "lucide-react";
 import { buildReceiptHtmls } from "@/lib/receiptTemplates";
-import { buildDrinkLabelsPdf } from "@/lib/labelTemplates";
+import { buildDrinkLabelsHtml } from "@/lib/labelTemplates";
 import { playNewOrderChime } from "@/lib/notificationSound";
 
 
@@ -190,12 +190,20 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
   const handlePrintLabels = (o: ApiOrder) => {
     if (!o?.items?.length) { toast.error("This order has no items to label."); return; }
     try {
-      const doc = buildDrinkLabelsPdf(o as any);
-      doc.autoPrint(); // opens the print dialog automatically
-      const url = doc.output("bloburl");
-      const w = window.open(url, "_blank");
+      const html = buildDrinkLabelsHtml(o as any);
+      const w = window.open("", "_blank");
       if (!w) {
         toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
+        return;
+      }
+      w.document.write(html);
+      w.document.close();
+      // Trigger print dialog — use onload as fallback if readyState isn't complete yet
+      if (w.document.readyState === "complete") {
+        w.focus();
+        w.print();
+      } else {
+        w.onload = () => { w.focus(); w.print(); };
       }
     } catch (err: any) {
       toast.error("Could not build labels: " + (err?.message ?? "error"));

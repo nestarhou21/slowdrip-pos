@@ -685,25 +685,13 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 
               <div className="mt-8 text-center space-y-2">
                 <p className="text-[10px] text-muted-foreground italic mb-5 leading-none">Thank you for your visit!</p>
+                {/* USB / OS printer driver — the normal path for the Xprinter. */}
                 <Button
-                  onClick={async () => {
+                  onClick={() => {
                     if (!lastPlacedOrder) return;
-                    if (!isBleSupported()) {
-                      toast.error("Bluetooth printing requires Chrome on Android.");
-                      return;
-                    }
-                    try {
-                      await blePrintReceiptDouble(lastPlacedOrder, settings as any);
-                      toast.success("Printed 2 copies");
-                      setLastPlacedOrder(null);
-                    } catch (err: any) {
-                      const msg: string = err?.message ?? "";
-                      if (msg.includes("cancelled") || msg.includes("chosen")) {
-                        // user dismissed the BLE picker — do nothing
-                      } else {
-                        toast.error("Printer error: " + (msg || "Unknown error"));
-                      }
-                    }
+                    const o = lastPlacedOrder;
+                    void handlePrintApiOrder(o);
+                    setLastPlacedOrder(null);
                   }}
                   className="w-full h-12 gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all shadow-lg hover:shadow-slate-200"
                 >
@@ -718,11 +706,30 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
                   <Printer className="w-4 h-4" />
                   Print Cup Labels
                 </Button>
+                {/* Bluetooth printers only (Chrome on Android). */}
                 <button
-                  onClick={() => { handlePrintApiOrder(lastPlacedOrder!); setLastPlacedOrder(null); }}
+                  onClick={async () => {
+                    if (!lastPlacedOrder) return;
+                    if (!isBleSupported()) {
+                      toast.error("Bluetooth printing is not supported in this browser.");
+                      return;
+                    }
+                    try {
+                      await blePrintReceiptDouble(lastPlacedOrder, settings as any);
+                      toast.success("Printed 2 copies");
+                      setLastPlacedOrder(null);
+                    } catch (err: any) {
+                      const msg: string = err?.message ?? "";
+                      if (msg.includes("cancelled") || msg.includes("chosen")) {
+                        toast("Bluetooth printing cancelled — use Print Receipt for a USB printer.");
+                      } else {
+                        toast.error("Bluetooth printer error: " + (msg || "Unknown error"));
+                      }
+                    }
+                  }}
                   className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 py-1 transition-colors"
                 >
-                  Browser Print (PDF)
+                  Bluetooth printer instead
                 </button>
               </div>
             </div>

@@ -306,28 +306,36 @@ const OrdersPage = ({ onPrintReceipt }: OrdersPageProps) => {
 
                 <div className="flex gap-2 pt-4">
                   <div className="flex-1 flex flex-col gap-1">
+                    {/* USB / OS printer driver — the normal path for the Xprinter. */}
                     <Button
-                      onClick={async () => {
-                        try {
-                          await blePrintReceiptDouble(selectedOrder, settings as any);
-                          toast.success("Printed 2 copies");
-                        } catch (err: any) {
-                          const msg: string = err?.message ?? "";
-                          if (!msg.includes("cancelled") && !msg.includes("chosen")) {
-                            toast.error("Printer error: " + (msg || "Unknown error"));
-                          }
-                        }
-                      }}
+                      onClick={() => onPrintReceipt(selectedOrder)}
                       variant="outline"
                       className="w-full gap-2 border-primary/20 text-primary hover:bg-primary/5 h-12"
                     >
                       <Printer className="h-4 w-4" /> Print Receipt
                     </Button>
+                    {/* Bluetooth printers only (Chrome on Android). */}
                     <button
-                      onClick={() => onPrintReceipt(selectedOrder)}
+                      onClick={async () => {
+                        if (!isBleSupported()) {
+                          toast.error("Bluetooth printing is not supported in this browser.");
+                          return;
+                        }
+                        try {
+                          await blePrintReceiptDouble(selectedOrder, settings as any);
+                          toast.success("Printed 2 copies");
+                        } catch (err: any) {
+                          const msg: string = err?.message ?? "";
+                          if (msg.includes("cancelled") || msg.includes("chosen")) {
+                            toast("Bluetooth printing cancelled — use Print Receipt for a USB printer.");
+                          } else {
+                            toast.error("Bluetooth printer error: " + (msg || "Unknown error"));
+                          }
+                        }
+                      }}
                       className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 text-center transition-colors"
                     >
-                      Browser Print (fallback)
+                      Bluetooth printer instead
                     </button>
                   </div>
 

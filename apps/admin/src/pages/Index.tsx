@@ -213,7 +213,10 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
         toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
         return;
       }
-      writePrintHtml(w, html);
+      // The label page ships its own size tuner + auto-print, so write it as-is.
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
     } catch (err: any) {
       toast.error("Could not build labels: " + (err?.message ?? "error"));
     }

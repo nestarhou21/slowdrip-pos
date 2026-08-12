@@ -189,7 +189,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 </div>
 <div style="height:52px;"></div>
 <style>@media print { #__printbar, #__printbar + div { display:none !important; } }</style>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},400);});<\/script>`;
+<script>(function(){var go=function(){setTimeout(function(){window.focus();window.print();},400);};if(document.readyState==='complete'){go();}else{window.addEventListener('load',go);}})();<\/script>`;
     w.document.write(html.includes("</body>") ? html.replace("</body>", printExtras + "</body>") : html + printExtras);
     w.document.close();
   };

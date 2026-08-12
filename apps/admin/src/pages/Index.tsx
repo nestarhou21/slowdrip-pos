@@ -169,18 +169,29 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
       khrRate:     KHR_RATE,
     });
 
+    openPrintWindow(html);
+  };
+
+  // Open a new window with the given HTML and print it. The auto-print script
+  // runs INSIDE the new window (no cross-window timing issues), and a visible
+  // Print button (hidden on paper) is the manual fallback if auto-print is
+  // blocked on this device.
+  const openPrintWindow = (html: string) => {
     const w = window.open("", "_blank");
     if (!w) {
       toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
       return;
     }
-    w.document.write(html);
+    const printExtras = `
+<div id="__printbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:10px;display:flex;gap:8px;justify-content:center;font-family:Arial,sans-serif;">
+  <button onclick="window.print()" style="font-size:15px;font-weight:bold;padding:8px 24px;border-radius:6px;border:0;background:#22c55e;color:#fff;cursor:pointer;">&#128424; Print</button>
+  <button onclick="window.close()" style="font-size:15px;padding:8px 16px;border-radius:6px;border:0;background:#444;color:#fff;cursor:pointer;">Close</button>
+</div>
+<div style="height:52px;"></div>
+<style>@media print { #__printbar, #__printbar + div { display:none !important; } }</style>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},400);});<\/script>`;
+    w.document.write(html.includes("</body>") ? html.replace("</body>", printExtras + "</body>") : html + printExtras);
     w.document.close();
-    if (w.document.readyState === "complete") {
-      w.focus(); w.print();
-    } else {
-      w.onload = () => { w.focus(); w.print(); };
-    }
   };
 
   // Print one cup sticker per drink via the OS printer driver (e.g. Xprinter
@@ -191,20 +202,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     if (!o?.items?.length) { toast.error("This order has no items to label."); return; }
     try {
       const html = buildDrinkLabelsHtml(o as any);
-      const w = window.open("", "_blank");
-      if (!w) {
-        toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
-        return;
-      }
-      w.document.write(html);
-      w.document.close();
-      // Trigger print dialog — use onload as fallback if readyState isn't complete yet
-      if (w.document.readyState === "complete") {
-        w.focus();
-        w.print();
-      } else {
-        w.onload = () => { w.focus(); w.print(); };
-      }
+      openPrintWindow(html);
     } catch (err: any) {
       toast.error("Could not build labels: " + (err?.message ?? "error"));
     }

@@ -139,18 +139,22 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 
   const handlePrintApiOrder = async (o: ApiOrder) => {
     let logoSrc = "";
-    const logoUrl = settings?.logo_url || "/images/sd-logo.jpg";
-    try {
-      const resp = await fetch(logoUrl);
-      const blob = await resp.blob();
-      logoSrc = await new Promise<string>((res) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-    } catch { /* skip logo if unavailable */ }
+    const logoUrl = settings?.logo_url || "";
+    if (logoUrl) {
+      try {
+        const resp = await fetch(logoUrl);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          logoSrc = await new Promise<string>((res) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch { /* skip logo if unavailable */ }
+    }
 
-    const [merchantHtml, customerHtml] = buildReceiptHtmls({
+    const html = buildReceiptHtmls({
       order: o,
       logoSrc,
       cafeName:    settings?.cafe_name     ?? "Slow Drip",
@@ -164,23 +168,19 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
       paymentLabel: o.payment_method === 'qr' ? 'ABA QR' : o.payment_method.toUpperCase(),
       khrRate:     KHR_RATE,
     });
-    const printHtml = (html: string) => {
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-      document.body.appendChild(iframe);
-      const doc = iframe.contentWindow?.document;
-      if (doc) {
-        doc.open(); doc.write(html); doc.close();
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => document.body.removeChild(iframe), 1000);
-        }, 300);
-      }
-    };
 
-    printHtml(merchantHtml);
-    printHtml(customerHtml);
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    if (w.document.readyState === "complete") {
+      w.focus(); w.print();
+    } else {
+      w.onload = () => { w.focus(); w.print(); };
+    }
   };
 
   // Print one cup sticker per drink via the OS printer driver (e.g. Xprinter

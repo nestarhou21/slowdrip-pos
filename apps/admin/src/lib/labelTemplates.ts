@@ -193,13 +193,14 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    var padY = Math.round(H * 0.05);
-    var maxW = W - Math.round(W * 0.06) * 2;
-    var availH = H - padY * 2;
+    // Zero margin: text is allowed to use the full sticker, edge to edge.
+    var maxW = W;
+    var availH = H;
+    var LH = 1.02;   // line height multiplier — tight, no leading whitespace
 
-    // Lay the label out at a given scale. Text is shrunk horizontally by fit()
-    // and the whole stack is shrunk vertically by lowering the scale until the
-    // blocks fit the sticker height.
+    // Lay the label out at a given scale. fit() shrinks each block to the
+    // label width; the scale search below grows or shrinks the whole stack so
+    // it fills the sticker height as fully as possible without overflowing.
     function build(sc) {
       var bl = [];
       function add(text, frac, minPx, maxLines, weight, italic, gapFrac) {
@@ -209,27 +210,38 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
         b.weight = weight; b.italic = italic; b.gap = H * gapFrac * sc;
         bl.push(b);
       }
-      add(cup.top,    0.13, 5, 1, 'bold',   false, 0.04);
-      add(cup.name,   0.28, 7, 2, 'bold',   false, cup.cust || cup.addons ? 0.03 : 0);
-      add(cup.cust,   0.15, 5, 2, 'bold',   false, cup.addons ? 0.02 : 0);
-      add(cup.addons, 0.12, 4, 1, 'normal', true,  0);
+      add(cup.top,    0.15, 5, 1, 'bold',   false, 0.015);
+      add(cup.name,   0.34, 7, 2, 'bold',   false, cup.cust || cup.addons ? 0.015 : 0);
+      add(cup.cust,   0.18, 5, 2, 'bold',   false, cup.addons ? 0.01 : 0);
+      add(cup.addons, 0.14, 4, 1, 'normal', true,  0);
       return bl;
     }
 
+    // Search from large to small and take the first scale that fits, so the
+    // text grows to fill the label instead of leaving white space around it.
     var blocks, totalH;
-    for (var sc = 1; sc >= 0.3; sc -= 0.05) {
+    for (var sc = 2.6; sc >= 0.3; sc -= 0.04) {
       blocks = build(sc);
       totalH = 0;
-      blocks.forEach(function (b) { totalH += b.lines.length * b.size * 1.15 + b.gap; });
+      blocks.forEach(function (b) { totalH += b.lines.length * b.size * LH + b.gap; });
       if (totalH <= availH) break;
     }
 
-    var y = Math.max(padY, (H - totalH) / 2);
+    // Trim the font's built-in ascent padding so the ink, not the glyph box,
+    // is centred on the sticker.
+    var first = blocks[0];
+    font(ctx, first.size, first.weight, first.italic);
+    var m = ctx.measureText(first.lines[0] || 'X');
+    var inkTop = (m.actualBoundingBoxAscent != null)
+      ? first.size * (LH - 1) / 2 + (first.size - m.actualBoundingBoxAscent) * 0.35
+      : 0;
+
+    var y = (H - totalH) / 2 - inkTop;
     blocks.forEach(function (b) {
       font(ctx, b.size, b.weight, b.italic);
       b.lines.forEach(function (ln) {
         ctx.fillText(ln, W / 2, y);
-        y += b.size * 1.15;
+        y += b.size * LH;
       });
       y += b.gap;
     });

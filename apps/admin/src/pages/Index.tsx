@@ -1,19 +1,21 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { blePrintReceiptDouble, isBleSupported } from "@/lib/blePrinter";
 import Sidebar from "@/components/pos/Sidebar";
 import TopBar from "@/components/pos/TopBar";
 import CategoryTabs from "@/components/pos/CategoryTabs";
 import ProductCard from "@/components/pos/ProductCard";
 import CartPanel from "@/components/pos/CartPanel";
-import Dashboard from "@/components/pos/Dashboard";
-import OrdersPage from "@/components/pos/OrdersPage";
-import ProductManagement from "@/components/pos/ProductManagement";
-import SettingsPage from "@/components/pos/SettingsPage";
-import RegisterPage from "@/components/pos/RegisterPage";
-import StaffManagement from "@/components/pos/StaffManagement";
-import TransactionsPage from "@/components/pos/TransactionsPage";
-import InventoryPage from "@/components/pos/InventoryPage";
-import OrderLogPage from "@/components/pos/OrderLogPage";
+
+// Loaded on demand so charts/admin screens stay out of the initial bundle.
+const Dashboard = lazy(() => import("@/components/pos/Dashboard"));
+const OrdersPage = lazy(() => import("@/components/pos/OrdersPage"));
+const ProductManagement = lazy(() => import("@/components/pos/ProductManagement"));
+const SettingsPage = lazy(() => import("@/components/pos/SettingsPage"));
+const RegisterPage = lazy(() => import("@/components/pos/RegisterPage"));
+const StaffManagement = lazy(() => import("@/components/pos/StaffManagement"));
+const TransactionsPage = lazy(() => import("@/components/pos/TransactionsPage"));
+const InventoryPage = lazy(() => import("@/components/pos/InventoryPage"));
+const OrderLogPage = lazy(() => import("@/components/pos/OrderLogPage"));
 import { useAdminNotifications, useMarkAdminNotificationRead, useCurrentRegisterSession, useApiProducts, useApiCategories, usePlaceOrder, useCheckBakongStatus, useRegenerateBakongQr, useUpdateOrderStatus, useApiPosOrders, useSettings, type ApiProduct, type ApiProductVariant, type ApiOrder, type BakongQrData, type PosCartItem, type AdminNotification, type ApiCategory } from "@repo/store";
 import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Input, Label, toast, Checkbox, Skeleton } from "@repo/ui";
 import { CheckCircle2, ShoppingBag, Printer, Plus, Lock, ScanLine, Loader2 } from "lucide-react";
@@ -347,80 +349,82 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-            {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "menu" && (
-              <div className="space-y-6 text-left">
-                {isRegisterLoading ? (
-                  /* ── Loading skeleton while checking register status ── */
-                  <>
-                    <div className="flex gap-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Skeleton key={i} className="h-9 w-24 rounded-full" />
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {[...Array(8)].map((_, i) => (
-                        <div key={i} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-                          <Skeleton className="h-36 w-full rounded-xl" />
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/2" />
-                          <div className="flex items-center justify-between pt-1">
-                            <Skeleton className="h-5 w-16" />
-                            <Skeleton className="h-8 w-8 rounded-full" />
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+              {activeTab === "dashboard" && <Dashboard />}
+              {activeTab === "menu" && (
+                <div className="space-y-6 text-left">
+                  {isRegisterLoading ? (
+                    /* ── Loading skeleton while checking register status ── */
+                    <>
+                      <div className="flex gap-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Skeleton key={i} className="h-9 w-24 rounded-full" />
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {[...Array(8)].map((_, i) => (
+                          <div key={i} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                            <Skeleton className="h-36 w-full rounded-xl" />
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                            <div className="flex items-center justify-between pt-1">
+                              <Skeleton className="h-5 w-16" />
+                              <Skeleton className="h-8 w-8 rounded-full" />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </>
+                  ) : !isRegisterOpen ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed border-border text-center">
+                      <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                        <Lock className="h-10 w-10 text-primary" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-foreground mb-2">Register is Closed</h3>
+                      <p className="text-muted-foreground max-w-sm mb-8 leading-relaxed px-4 text-sm font-normal">
+                        You must open a register session with your shift details and opening balance before you can start taking orders.
+                      </p>
+                      <Button
+                        size="lg"
+                        onClick={() => setActiveTab("register")}
+                        className="rounded-2xl px-10 h-14 text-base font-bold shadow-lg shadow-primary/20"
+                      >
+                        Go to Register
+                      </Button>
                     </div>
-                  </>
-                ) : !isRegisterOpen ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed border-border text-center">
-                    <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                      <Lock className="h-10 w-10 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-2">Register is Closed</h3>
-                    <p className="text-muted-foreground max-w-sm mb-8 leading-relaxed px-4 text-sm font-normal">
-                      You must open a register session with your shift details and opening balance before you can start taking orders.
-                    </p>
-                    <Button
-                      size="lg"
-                      onClick={() => setActiveTab("register")}
-                      className="rounded-2xl px-10 h-14 text-base font-bold shadow-lg shadow-primary/20"
-                    >
-                      Go to Register
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <CategoryTabs
-                      active={activeCategory}
-                      onChange={setActiveCategory}
-                      categories={apiCategories}
-                      isLoading={categoriesQuery.isLoading}
-                    />
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {filteredProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} onAdd={() => openCustomize(product)} />
-                      ))}
-                      {filteredProducts.length === 0 && !productsQuery.isLoading && (
-                        <div className="col-span-full flex h-64 flex-col items-center justify-center text-center opacity-50">
-                          <ShoppingBag className="mb-4 h-12 w-12" />
-                          <p className="text-lg font-medium">No products found</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <>
+                      <CategoryTabs
+                        active={activeCategory}
+                        onChange={setActiveCategory}
+                        categories={apiCategories}
+                        isLoading={categoriesQuery.isLoading}
+                      />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {filteredProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} onAdd={() => openCustomize(product)} />
+                        ))}
+                        {filteredProducts.length === 0 && !productsQuery.isLoading && (
+                          <div className="col-span-full flex h-64 flex-col items-center justify-center text-center opacity-50">
+                            <ShoppingBag className="mb-4 h-12 w-12" />
+                            <p className="text-lg font-medium">No products found</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
-            {activeTab === "orders" && <OrdersPage onPrintReceipt={handlePrintApiOrder} />}
-            {activeTab === "products" && <ProductManagement />}
-            {activeTab === "transactions" && <TransactionsPage />}
-            {activeTab === "order-log" && <OrderLogPage />}
-            {activeTab === "inventory" && <InventoryPage />}
-            {activeTab === "settings" && <SettingsPage />}
-            {activeTab === "register" && <RegisterPage userName={userName} userRole={userRole} />}
-            {activeTab === "staff-management" && <StaffManagement currentUserId={currentUserId} />}
+              {activeTab === "orders" && <OrdersPage onPrintReceipt={handlePrintApiOrder} />}
+              {activeTab === "products" && <ProductManagement />}
+              {activeTab === "transactions" && <TransactionsPage />}
+              {activeTab === "order-log" && <OrderLogPage />}
+              {activeTab === "inventory" && <InventoryPage />}
+              {activeTab === "settings" && <SettingsPage />}
+              {activeTab === "register" && <RegisterPage userName={userName} userRole={userRole} />}
+              {activeTab === "staff-management" && <StaffManagement currentUserId={currentUserId} />}
+            </Suspense>
           </div>
 
           {activeTab === "menu" && (

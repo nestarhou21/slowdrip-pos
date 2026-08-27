@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => ({
                     "radix-vendor": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tooltip", "@radix-ui/react-tabs", "@radix-ui/react-select", "@radix-ui/react-popover", "@radix-ui/react-checkbox", "@radix-ui/react-switch", "@radix-ui/react-label", "@radix-ui/react-slot"],
                     "lucide-vendor": ["lucide-react"],
                     "query-vendor": ["@tanstack/react-query"],
+                    "charts-vendor": ["recharts"],
                 },
             },
         },

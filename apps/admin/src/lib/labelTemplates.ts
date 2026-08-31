@@ -41,19 +41,39 @@ function esc(s: string): string {
   ));
 }
 
-// Split the stored customisation string ("Sugar: 50% | Ice: Normal | no straw")
-// into individual parts for the label.
+// Split the stored customisation string ("Sugar: 50% | Ice: Normal Ice | no straw").
 function customLines(c?: string | null): string[] {
   if (!c) return [];
   return c.split('|').map((p) => p.trim()).filter(Boolean);
 }
 
-/** One entry per physical cup, so quantity 2 = 2 labels. */
+// Pull sugar level, ice level and any freeform special notes out of the
+// customisation string.
+function parseCust(c?: string | null): { sugar: string; ice: string; special: string } {
+  let sugar = '', ice = '';
+  const special: string[] = [];
+  for (const p of customLines(c)) {
+    const s = /^sugar\s*:?\s*(.+)$/i.exec(p);
+    const j = /^ice\s*:?\s*(.+)$/i.exec(p);
+    if (s) sugar = s[1].trim();
+    else if (j) ice = j[1].trim();
+    else special.push(p);
+  }
+  return { sugar, ice, special: special.join(', ') };
+}
+
+const ORDER_TYPE: Record<string, string> = { dine_in: 'Dine-in', takeaway: 'Takeaway', delivery: 'Delivery' };
+const SIZE_WORD: Record<string, string> = { S: 'Small', M: 'Medium', L: 'Large', XL: 'Extra Large' };
+
+/** One entry per physical cup, so quantity 2 = 2 labels. Full-word fields. */
 interface CupData {
-  top: string;
-  name: string;
-  cust: string;
-  addons: string;
+  top: string;       // "D014 / Dine-in   1/1"
+  name: string;      // drink name
+  size: string;      // "Large" / "Hot"
+  sugar: string;     // "Sugar 30%"
+  ice: string;       // "Normal Ice"
+  toppings: string;  // "+ Aloe Vera, Black Jelly"
+  special: string;   // special instructions
 }
 
 function toCups(order: LabelOrder): CupData[] {
@@ -63,15 +83,27 @@ function toCups(order: LabelOrder): CupData[] {
     for (let i = 0; i < qty; i++) flat.push(item);
   }
   const total = flat.length;
+  const type = ORDER_TYPE[order.order_type ?? ''] ??
+    (order.order_type ? order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1) : '');
   return flat.map((item, i) => {
     const name = item.product?.name ?? item.item_name ?? 'Item';
-    const size = item.variant?.size?.name ?? '';
+    const rawSize = item.variant?.size?.name ?? '';
     const addons = (item.addons ?? []).map((a) => a.addon?.name).filter(Boolean) as string[];
+    const { sugar, ice, special } = parseCust(item.customisation);
+    const hotIce = /hot/i.test(ice);
+    const sizeWord = rawSize ? (SIZE_WORD[rawSize] ?? rawSize) : (hotIce ? 'Hot' : '');
+    // "Normal Ice" -> "Ice Normal"; "No Ice" stays natural; hot drinks omit it.
+    const iceShort = ice.replace(/\s*ice\s*$/i, '').trim();
+    const iceLine = (!ice || hotIce) ? ''
+      : (iceShort && iceShort.toLowerCase() !== 'no' ? 'Ice ' + iceShort : ice);
     return {
-      top: order.order_number + '  ·  ' + (i + 1) + '/' + total,
-      name: size ? name + ' (' + size + ')' : name,
-      cust: customLines(item.customisation).join('  ·  '),
-      addons: addons.length ? '+ ' + addons.join(', ') : '',
+      top: order.order_number + (type ? '  /  ' + type : '') + '      ' + (i + 1) + '/' + total,
+      name,
+      size: sizeWord,
+      sugar: sugar ? 'Sugar ' + sugar : '',
+      ice: iceLine,
+      toppings: addons.length ? '+ ' + addons.join(', ') : '',
+      special,
     };
   });
 }
@@ -210,10 +242,13 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
         b.weight = weight; b.italic = italic; b.gap = H * gapFrac * sc;
         bl.push(b);
       }
-      add(cup.top,    0.15, 5, 1, 'bold',   false, 0.015);
-      add(cup.name,   0.34, 7, 2, 'bold',   false, cup.cust || cup.addons ? 0.015 : 0);
-      add(cup.cust,   0.18, 5, 2, 'bold',   false, cup.addons ? 0.01 : 0);
-      add(cup.addons, 0.14, 4, 1, 'normal', true,  0);
+      add(cup.top,      0.12, 5, 1, 'bold',   false, 0.02);
+      add(cup.name,     0.28, 8, 2, 'bold',   false, 0.012);
+      add(cup.size,     0.16, 6, 1, 'bold',   false, 0.006);
+      add(cup.sugar,    0.13, 5, 1, 'normal', false, 0.004);
+      add(cup.ice,      0.13, 5, 1, 'normal', false, (cup.toppings || cup.special) ? 0.004 : 0);
+      add(cup.toppings, 0.11, 4, 2, 'normal', false, cup.special ? 0.004 : 0);
+      add(cup.special,  0.10, 4, 2, 'normal', true,  0);
       return bl;
     }
 

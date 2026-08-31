@@ -5,9 +5,9 @@
 // paper can be changed (or switched to continuous "auto" height) without a
 // redeploy; the choice is remembered in localStorage.
 
-export const RECEIPT_PAPER = { width: 80, height: 80 } as const; // mm (height 0 = auto)
+export const RECEIPT_PAPER = { width: 80, height: 0 } as const; // mm (height 0 = auto / continuous)
 
-const STORAGE_KEY = 'sd_receipt_size';
+const STORAGE_KEY = 'sd_receipt_size_v2';
 
 export interface ReceiptData {
   order: any;

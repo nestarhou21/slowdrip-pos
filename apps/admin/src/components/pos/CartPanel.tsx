@@ -275,6 +275,13 @@ const CartPanel = ({
                       >{c}</button>
                     ))}
                   </div>
+                  {/* Exact total — one tap, no manual typing */}
+                  {total > 0 && (
+                    <button
+                      onClick={() => setReceivedAmount(receivedCurrency === "USD" ? total.toFixed(2) : String(Math.round(total * khrRate)))}
+                      className="text-[9px] font-bold bg-primary/10 text-primary border border-primary/40 px-2 py-0.5 rounded-md hover:bg-primary/20"
+                    >Exact</button>
+                  )}
                   {/* Quick-fill buttons */}
                   {receivedCurrency === "USD" && total > 0 && [5, 10, 20].map(amt => (
                     <button key={amt}

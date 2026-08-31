@@ -77,7 +77,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
   const [customVariant, setCustomVariant] = useState<ApiProductVariant | null>(null);
   const [customAddons, setCustomAddons] = useState<string[]>([]); // addon product IDs
   const [customSugar, setCustomSugar] = useState("100%");
-  const [customIce, setCustomIce] = useState("Normal");
+  const [customIce, setCustomIce] = useState("Normal Ice");
   const [customNotes, setCustomNotes] = useState("");
 
   const isBarista = userRole === "barista";
@@ -235,7 +235,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     setCustomVariant(product.has_variants ? (product.variants[0] ?? null) : null);
     setCustomAddons([]);
     setCustomSugar("100%");
-    setCustomIce("Normal");
+    setCustomIce("Normal Ice");
     setCustomNotes("");
   };
 
@@ -487,7 +487,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sugar Level</Label>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {["No Sugar", "25%", "50%", "75%", "100%"].map((s) => (
+                  {["0%", "25%", "50%", "75%", "100%"].map((s) => (
                     <button
                       key={s}
                       onClick={() => setCustomSugar(s)}
@@ -510,7 +510,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ice Level</Label>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {["No Ice", "Less Ice", "Normal", "Extra Ice"].map((s) => (
+                  {["Hot Drink", "No Ice", "Less Ice", "Normal Ice", "More Ice"].map((s) => (
                     <button
                       key={s}
                       onClick={() => setCustomIce(s)}

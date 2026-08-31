@@ -139,16 +139,29 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
   const isRegisterOpen = (session.data as any)?.status === 'open';
   const isRegisterLoading = session.isLoading;
 
-  const handlePrintApiOrder = async (o: ApiOrder) => {
-    // Open the window synchronously, while the user's click is still "fresh".
-    // Chrome silently blocks window.open() after an await (the logo fetch),
-    // which made the receipt tab never appear.
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
-      return;
+  // Background/auto printing writes to a hidden iframe (browsers do NOT
+  // pop-up-block iframes); the receipt/label HTML auto-prints itself on load.
+  const printViaIframe = (html: string) => {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (doc) { doc.open(); doc.write(html); doc.close(); }
+    setTimeout(() => { try { document.body.removeChild(iframe); } catch { /* already gone */ } }, 60000);
+  };
+
+  const handlePrintApiOrder = async (o: ApiOrder, silent = false) => {
+    // Manual print opens a visible window synchronously (Chrome blocks
+    // window.open() after the async logo fetch). Auto-print uses a hidden iframe.
+    let w: Window | null = null;
+    if (!silent) {
+      w = window.open("", "_blank");
+      if (!w) {
+        toast.error("Pop-up blocked. Allow pop-ups for this site, then try again.");
+        return;
+      }
+      w.document.write("<p style='font-family:sans-serif;padding:24px;color:#555;'>Preparing receipt&hellip;</p>");
     }
-    w.document.write("<p style='font-family:sans-serif;padding:24px;color:#555;'>Preparing receipt&hellip;</p>");
 
     let logoSrc = "";
     const logoUrl = settings?.logo_url || "";
@@ -182,19 +195,24 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
     });
 
     // The receipt page ships its own paper-size tuner + auto-print.
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    if (silent) {
+      printViaIframe(html);
+    } else if (w) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
   };
 
   // Print one cup sticker per drink via the OS printer driver (e.g. Xprinter
   // on USB). Opens a real (visible) window so the print dialog reliably shows
   // and you can pick the label printer. Choose the Xprinter in the dialog, or
   // set it as your default printer so it goes straight there.
-  const handlePrintLabels = (o: ApiOrder) => {
-    if (!o?.items?.length) { toast.error("This order has no items to label."); return; }
+  const handlePrintLabels = (o: ApiOrder, silent = false) => {
+    if (!o?.items?.length) { if (!silent) toast.error("This order has no items to label."); return; }
     try {
       const html = buildDrinkLabelsHtml(o as any);
+      if (silent) { printViaIframe(html); return; }
       const w = window.open("", "_blank");
       if (!w) {
         toast.error("Pop-up blocked. Allow pop-ups for this site, then click Print Cup Labels again.");
@@ -205,9 +223,26 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
       w.document.write(html);
       w.document.close();
     } catch (err: any) {
-      toast.error("Could not build labels: " + (err?.message ?? "error"));
+      if (!silent) toast.error("Could not build labels: " + (err?.message ?? "error"));
     }
   };
+
+  // Print the receipt AND the cup labels together (staggered so the two print
+  // dialogs / iframes don't collide).
+  const handlePrintBoth = (o: ApiOrder, silent = false) => {
+    void handlePrintApiOrder(o, silent);
+    setTimeout(() => handlePrintLabels(o, silent), 800);
+  };
+
+  // Auto-print receipt + labels once, the moment an order is placed.
+  const autoPrintedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastPlacedOrder && autoPrintedRef.current !== lastPlacedOrder.id) {
+      autoPrintedRef.current = lastPlacedOrder.id;
+      handlePrintBoth(lastPlacedOrder, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastPlacedOrder]);
 
 
 
@@ -674,18 +709,27 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
 
               <div className="mt-8 text-center space-y-2">
                 <p className="text-[10px] text-muted-foreground italic mb-5 leading-none">Thank you for your visit!</p>
-                {/* USB / OS printer driver — the normal path for the Xprinter. */}
+                {/* One tap: receipt + cup labels together (auto-prints already fired). */}
                 <Button
+                  onClick={() => { if (lastPlacedOrder) handlePrintBoth(lastPlacedOrder); }}
+                  className="w-full h-12 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-lg"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Receipt + Labels
+                </Button>
+                {/* Receipt only (USB / OS printer driver). */}
+                <Button
+                  variant="outline"
                   onClick={() => {
                     if (!lastPlacedOrder) return;
                     const o = lastPlacedOrder;
                     void handlePrintApiOrder(o);
                     setLastPlacedOrder(null);
                   }}
-                  className="w-full h-12 gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all shadow-lg hover:shadow-slate-200"
+                  className="w-full h-11 gap-2 font-bold"
                 >
                   <Printer className="w-4 h-4" />
-                  Print Receipt &amp; Done
+                  Receipt Only
                 </Button>
                 <Button
                   variant="outline"

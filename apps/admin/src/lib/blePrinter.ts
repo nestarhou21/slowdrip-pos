@@ -150,7 +150,7 @@ function buildEscPos(order: ApiOrder, settings?: Record<string, any>, label = "C
   line();
 
   const payLabels: Record<string, string> = {
-    qr: "ABA QR", bakong: "Bakong KHQR", cash: "CASH", card: "CARD",
+    qr: "ABA", bakong: "ABA", cash: "CASH", card: "CARD",
   };
   twoCol("Payment", payLabels[order.payment_method] ?? order.payment_method.toUpperCase());
 

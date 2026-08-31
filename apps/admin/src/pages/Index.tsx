@@ -177,7 +177,7 @@ const Index = ({ onLogout, userRole, staffPortal = false, userName = "", current
       wifiName:    settings?.wifi_name     ?? "",
       wifiPass:    settings?.wifi_password ?? "",
       footer:      settings?.receipt_footer ?? "Thank you for your visit!",
-      paymentLabel: o.payment_method === 'qr' ? 'ABA QR' : o.payment_method.toUpperCase(),
+      paymentLabel: (o.payment_method === 'qr' || o.payment_method === 'bakong') ? 'ABA' : o.payment_method.toUpperCase(),
       khrRate:     KHR_RATE,
     });
 

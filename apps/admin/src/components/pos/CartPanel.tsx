@@ -233,7 +233,7 @@ const CartPanel = ({
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {m === "cash" ? "Cash" : "Online"}
+                {m === "cash" ? "Cash" : "ABA"}
               </button>
             ))}
           </div>
@@ -320,13 +320,13 @@ const CartPanel = ({
             <div className="animate-in fade-in duration-300 space-y-3">
               <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-center">
-                  Online Payment · ABA
+                  ABA Payment
                 </p>
                 {total > 0 && (
                   <p className="text-lg font-black text-foreground text-center">${total.toFixed(2)}</p>
                 )}
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Customer scans QR or pays via app on website
+                  Customer pays via ABA app
                 </p>
               </div>
               <p className="text-[10px] text-muted-foreground text-center leading-relaxed">

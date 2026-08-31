@@ -353,45 +353,43 @@ const CartPanel = ({
                   <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
-              {/* Collapsible discount controls */}
+              {/* Member discount — compact inline control */}
               <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setShowDiscount((v) => !v); if (showDiscount) setMemberDiscountPercent(""); }}
-                  className={cn(
-                    "flex w-full items-center justify-between text-[10px] font-bold uppercase tracking-widest border rounded-lg px-3 py-2 transition-colors",
-                    showDiscount
-                      ? "bg-primary/10 border-primary text-primary shadow-sm"
-                      : "border-border text-primary hover:bg-primary/5 hover:border-primary"
-                  )}
-                >
-                  <span className="flex items-center gap-1.5">
+                {!showDiscount ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscount(true)}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+                  >
                     <Tag className="h-3 w-3" />
-                    Member Discount
-                  </span>
-                  {showDiscount && memberPercent > 0
-                    ? <span className="text-[10px] font-bold text-emerald-600">-${discountAmount.toFixed(2)}</span>
-                    : <span className="text-[9px] font-semibold opacity-60">{showDiscount ? "Hide" : "Apply"}</span>
-                  }
-                </button>
-                {showDiscount && (
-                  <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-150 border border-primary/30 bg-primary/5 rounded-lg px-3 py-2.5">
+                    Member discount?
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 animate-in fade-in duration-150">
+                    <Tag className="h-3 w-3 text-primary shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Member</span>
                     <Input
                       type="number"
                       min={0}
                       max={100}
                       value={memberDiscountPercent}
                       onChange={(e) => setMemberDiscountPercent(e.target.value)}
-                      className="w-20 h-8 text-sm font-bold bg-white border-primary/40 focus-visible:ring-primary"
+                      className="w-12 h-7 text-xs font-bold text-center bg-white border-primary/40 focus-visible:ring-primary"
                       placeholder="0"
                       autoFocus
                     />
-                    <span className="text-sm font-bold text-primary">%</span>
+                    <span className="text-xs font-bold text-primary">%</span>
                     {memberPercent > 0 && (
-                      <span className="text-xs text-emerald-600 font-semibold ml-1">
-                        −${discountAmount.toFixed(2)} off
-                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-600">−${discountAmount.toFixed(2)}</span>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => { setShowDiscount(false); setMemberDiscountPercent(""); }}
+                      className="ml-auto text-[11px] leading-none text-muted-foreground hover:text-foreground"
+                      aria-label="Remove discount"
+                    >
+                      ✕
+                    </button>
                   </div>
                 )}
               </div>

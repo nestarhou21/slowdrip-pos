@@ -209,42 +209,48 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    // Small margin so the text sits a touch smaller than the sticker edge
-    // rather than filling it corner to corner.
-    var maxW = W * 0.88;
-    var availH = H * 0.86;
-    var LH = 1.02;   // line height multiplier — tight, no leading whitespace
+    // Keep the text well inside the sticker with clear whitespace around it —
+    // the text should look small on the 30x20 label, not fill it edge to edge.
+    var maxW = W * 0.84;
+    var availH = H * 0.72;
+    var LH = 1.18;   // line height multiplier — a little breathing room between rows
 
-    // Lay the label out at a given scale. fit() shrinks each block to the
-    // label width; the scale search below grows or shrinks the whole stack so
-    // it fills the sticker height as fully as possible without overflowing.
-    function build(sc) {
-      var bl = [];
-      function add(text, frac, minPx, maxLines, weight, italic, gapFrac) {
-        if (!text) return;
-        var maxPx = Math.max(minPx, Math.round(H * frac * sc));
-        var b = fit(ctx, text, maxW, maxPx, minPx, maxLines, weight, italic);
-        b.weight = weight; b.italic = italic; b.gap = H * gapFrac * sc;
-        bl.push(b);
-      }
-      add(cup.top,      0.12, 5, 1, 'bold',   false, 0.02);
-      add(cup.name,     0.28, 8, 2, 'bold',   false, 0.012);
-      add(cup.size,     0.16, 6, 1, 'bold',   false, 0.006);
-      add(cup.sugar,    0.13, 5, 1, 'normal', false, 0.004);
-      add(cup.ice,      0.13, 5, 1, 'normal', false, (cup.toppings || cup.special) ? 0.004 : 0);
-      add(cup.toppings, 0.11, 4, 2, 'normal', false, cup.special ? 0.004 : 0);
-      add(cup.special,  0.10, 4, 2, 'normal', true,  0);
-      return bl;
-    }
+    // Every field prints at the SAME font size. Fields keep their own weight
+    // (name bold, special italic) and max wrap lines, but the size is uniform.
+    var fields = [
+      { text: cup.top,      maxLines: 1, weight: 'bold',   italic: false },
+      { text: cup.name,     maxLines: 2, weight: 'bold',   italic: false },
+      { text: cup.size,     maxLines: 1, weight: 'normal', italic: false },
+      { text: cup.sugar,    maxLines: 1, weight: 'normal', italic: false },
+      { text: cup.ice,      maxLines: 1, weight: 'normal', italic: false },
+      { text: cup.toppings, maxLines: 2, weight: 'normal', italic: false },
+      { text: cup.special,  maxLines: 2, weight: 'normal', italic: true  }
+    ].filter(function (f) { return f.text; });
 
-    // Search from large to small and take the first scale that fits, so the
-    // text grows to fill the label instead of leaving white space around it.
-    var blocks, totalH;
-    for (var sc = 2.6; sc >= 0.3; sc -= 0.04) {
-      blocks = build(sc);
+    // Cap the size deliberately small, then find the largest single size at
+    // which every field wraps within the width and the whole stack fits the
+    // height. gap between blocks is a fixed fraction of the chosen size.
+    var maxPx = Math.round(H * 0.10);   // smaller, uniform cap
+    var minPx = 4;
+    var blocks, totalH, size;
+    for (size = maxPx; size >= minPx; size -= 1) {
+      font(ctx, size, 'normal', false);
+      var gap = size * 0.28;
+      blocks = [];
       totalH = 0;
-      blocks.forEach(function (b) { totalH += b.lines.length * b.size * LH + b.gap; });
-      if (totalH <= availH) break;
+      var ok = true;
+      for (var i = 0; i < fields.length && ok; i++) {
+        var f = fields[i];
+        font(ctx, size, f.weight, f.italic);
+        var lines = wrap(ctx, f.text, maxW);
+        if (lines.length > f.maxLines) { ok = false; break; }
+        for (var k = 0; k < lines.length; k++) {
+          if (ctx.measureText(lines[k]).width > maxW) { ok = false; break; }
+        }
+        blocks.push({ lines: lines, size: size, weight: f.weight, italic: f.italic, gap: gap });
+        totalH += lines.length * size * LH + gap;
+      }
+      if (ok) { totalH -= gap; if (totalH <= availH) break; }   // drop trailing gap
     }
 
     // Trim the font's built-in ascent padding so the ink, not the glyph box,

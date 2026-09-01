@@ -8,14 +8,11 @@
 // browser's text layout and pagination, so what you see is exactly what the
 // printer receives.
 //
-// The printed page carries its own size tuner: the barista picks the sticker
-// size once, it is remembered in localStorage, and every later print goes
-// straight to the print dialog at that size.
+// The sticker size is fixed at 30x20mm — every label always prints at that
+// size. There is no size picker and no remembered size to drift from it.
 
-// Default sticker: 30mm across x 20mm feed direction (landscape).
+// Sticker: 30mm across x 20mm feed direction (landscape). Fixed — always.
 export const LABEL_SIZE = { width: '30mm', height: '20mm' } as const;
-
-const STORAGE_KEY = 'sd_label_size';
 
 // Order item as returned by the API (loose — matches ApiOrder.items usage
 // elsewhere in the app).
@@ -153,18 +150,7 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
 </style></head><body>
 
 <div id="sd-bar">
-  <b>Sticker size</b>
-  <button data-w="30" data-h="20">30×20</button>
-  <button data-w="40" data-h="20">40×20</button>
-  <button data-w="40" data-h="30">40×30</button>
-  <button data-w="50" data-h="25">50×25</button>
-  <button data-w="50" data-h="30">50×30</button>
-  <button data-w="60" data-h="40">60×40</button>
-  <span style="opacity:.5">|</span>
-  <input id="sd-w" type="number" min="10" max="200" step="1" title="width mm"> ×
-  <input id="sd-h" type="number" min="10" max="200" step="1" title="height mm"> mm
-  <button id="sd-swap" title="Swap width and height">⇄ Rotate</button>
-  <span style="opacity:.5">|</span>
+  <b>Cup labels · 30×20mm</b>
   <button class="go" id="sd-print">🖨 Print</button>
   <button id="sd-close">Close</button>
   <div id="sd-hint"></div>
@@ -175,13 +161,11 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
 
 <script>
 (function () {
-  var KEY = ${JSON.stringify(STORAGE_KEY)};
   var CUPS = ${JSON.stringify(cups)};
   var DPI = 300;
+  var LW = ${defW}, LH_MM = ${defH};   // fixed sticker size in mm — always 30x20
   var styleEl = document.getElementById('sd-size');
   var sheet = document.getElementById('sd-sheet');
-  var wIn = document.getElementById('sd-w');
-  var hIn = document.getElementById('sd-h');
   var hint = document.getElementById('sd-hint');
 
   function font(ctx, px, weight, italic) {
@@ -225,9 +209,10 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    // Zero margin: text is allowed to use the full sticker, edge to edge.
-    var maxW = W;
-    var availH = H;
+    // Small margin so the text sits a touch smaller than the sticker edge
+    // rather than filling it corner to corner.
+    var maxW = W * 0.88;
+    var availH = H * 0.86;
     var LH = 1.02;   // line height multiplier — tight, no leading whitespace
 
     // Lay the label out at a given scale. fit() shrinks each block to the
@@ -295,41 +280,18 @@ export function buildDrinkLabelsHtml(order: LabelOrder): string {
     });
   }
 
-  function apply(w, h, persist) {
-    w = Math.max(10, Math.min(200, +w || ${defW}));
-    h = Math.max(10, Math.min(200, +h || ${defH}));
-    styleEl.textContent =
-      '@page { size: ' + w + 'mm ' + h + 'mm; margin: 0; }' +
-      'html, body { width: ' + w + 'mm; }' +
-      '.label { width: ' + w + 'mm; height: ' + h + 'mm; }';
-    wIn.value = w; hIn.value = h;
-    Array.prototype.forEach.call(document.querySelectorAll('#sd-bar button[data-w]'), function (b) {
-      b.className = (+b.dataset.w === w && +b.dataset.h === h) ? 'on' : '';
-    });
-    render(w, h);
-    if (persist) { try { localStorage.setItem(KEY, JSON.stringify({ w: w, h: h })); } catch (e) {} }
-  }
+  // Fixed page + label size — always 30x20mm, no adjustment.
+  styleEl.textContent =
+    '@page { size: ' + LW + 'mm ' + LH_MM + 'mm; margin: 0; }' +
+    'html, body { width: ' + LW + 'mm; }' +
+    '.label { width: ' + LW + 'mm; height: ' + LH_MM + 'mm; }';
+  render(LW, LH_MM);
 
-  Array.prototype.forEach.call(document.querySelectorAll('#sd-bar button[data-w]'), function (b) {
-    b.onclick = function () { apply(b.dataset.w, b.dataset.h, true); };
-  });
-  wIn.oninput = function () { apply(wIn.value, hIn.value, true); };
-  hIn.oninput = function () { apply(wIn.value, hIn.value, true); };
-  document.getElementById('sd-swap').onclick = function () { apply(hIn.value, wIn.value, true); };
   document.getElementById('sd-print').onclick = function () { window.print(); };
   document.getElementById('sd-close').onclick = function () { window.close(); };
 
-  var saved = null;
-  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
-
-  if (saved && saved.w && saved.h) {
-    apply(saved.w, saved.h, false);
-    hint.textContent = 'Printing at ' + saved.w + '×' + saved.h + 'mm. In the print dialog set Paper size to match, Margins: None, Scale: 100%.';
-    setTimeout(function () { window.focus(); window.print(); }, 500);
-  } else {
-    apply(${defW}, ${defH}, false);
-    hint.textContent = 'First time: pick your sticker size above (measure one sticker), then click Print. Your choice is remembered.';
-  }
+  hint.textContent = 'In the print dialog set Paper size to 30×20mm, Margins: None, Scale: 100%.';
+  setTimeout(function () { window.focus(); window.print(); }, 400);
 })();
 <\/script>
 </body></html>`;
